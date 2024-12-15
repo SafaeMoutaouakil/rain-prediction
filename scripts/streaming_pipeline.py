@@ -1,16 +1,15 @@
-# streaming_pipeline.py
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.ml import PipelineModel
 from pyspark.ml.feature import VectorAssembler
 from pyspark.sql.types import StructType, StructField, DoubleType, StringType
 
-# Initialiser Spark
-spark = SparkSession.builder.appName("Rain Prediction Streaming")\
-                            .config("spark.ui.port", "4050") \
-                            .getOrCreate()
+# Initialiser Spark Session
+spark = SparkSession.builder \
+    .appName("Rain Prediction Streaming") \
+    .getOrCreate()
 
-# Schéma des données entrantes
+# Schéma des données Kafka entrantes
 schema = StructType([
     StructField("MinTemp", DoubleType()),
     StructField("MaxTemp", DoubleType()),
@@ -22,33 +21,34 @@ schema = StructType([
     StructField("Temp3pm", DoubleType())
 ])
 
-# Charger le modèle
-model = PipelineModel.load("notebooks/models/rain_prediction_model")
+# Charger le modèle ML sauvegardé
+model = PipelineModel.load("C:/Users/pc/rain-prediction/notebooks/models/rain_prediction_model")
 
-# Connecter Kafka
-kafka_stream = spark.readStream.format("kafka") \
+# Lire le flux depuis Kafka
+kafka_stream = spark.readStream \
+    .format("kafka") \
     .option("kafka.bootstrap.servers", "localhost:9092") \
     .option("subscribe", "rain-prediction") \
     .load()
 
-# Parser les données
+# Décoder et parser les données Kafka
 parsed_stream = kafka_stream.selectExpr("CAST(value AS STRING)") \
     .select(from_json(col("value"), schema).alias("data")) \
     .select("data.*")
 
-# Assembler les features
+# Assembler les features pour le modèle
 feature_columns = ["MinTemp", "MaxTemp", "Rainfall", "WindGustSpeed", "Humidity3pm", "Pressure3pm", "Cloud9am", "Temp3pm"]
 assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
 processed_stream = assembler.transform(parsed_stream)
 
-# Prédire avec le modèle
+# Appliquer le modèle pour faire des prédictions
 predictions = model.transform(processed_stream)
 
-# Afficher les prédictions
+# Afficher les résultats en temps réel
 query = predictions.select("prediction") \
-    .writeStream.outputMode("append") \
+    .writeStream \
+    .outputMode("append") \
     .format("console") \
     .start()
 
 query.awaitTermination()
- 
