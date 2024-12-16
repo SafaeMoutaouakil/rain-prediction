@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1734302241984,"sparkVersion":"3.4.4","uid":"VectorAssembler_dcf9cfae371f","paramMap":{"outputCol":"features","inputCols":["MinTemp","MaxTemp","Rainfall","WindGustSpeed","Humidity3pm","Pressure3pm","Cloud9am","Temp3pm"]},"defaultParamMap":{"outputCol":"VectorAssembler_dcf9cfae371f__output","handleInvalid":"error"}}

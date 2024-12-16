@@ -2,12 +2,29 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.ml import PipelineModel
 from pyspark.ml.feature import VectorAssembler
-from pyspark.sql.types import StructType, StructField, DoubleType, StringType
+from pyspark.sql.types import StructType, StructField, DoubleType
+
+from pyspark import SparkConf, SparkContext
+
+
+
+
+conf = SparkConf().set("spark.ui.port", "4041")\
+                  .set("spark.network.timeout", "800s")
+
+
+sc = SparkContext(conf=conf)
+
+# Adjust the logging level (e.g., INFO, WARN, ERROR, DEBUG)
+sc.setLogLevel("ERROR")  # This will change the log level to INFO
+
 
 # Initialiser Spark Session
 spark = SparkSession.builder \
     .appName("Rain Prediction Streaming") \
+    .config("spark.jars", "C:/spark/spark-3.4.4-bin-hadoop3/jars/spark-sql-kafka-0-10_2.13-3.4.4.jar,C:/spark/spark-3.4.4-bin-hadoop3/jars/kafka-clients-2.8.0.jar") \
     .getOrCreate()
+
 
 # Schéma des données Kafka entrantes
 schema = StructType([
@@ -22,7 +39,7 @@ schema = StructType([
 ])
 
 # Charger le modèle ML sauvegardé
-model = PipelineModel.load("C:/Users/pc/rain-prediction/notebooks/models/rain_prediction_model")
+model = PipelineModel.load("C:/Users/pc/rain-prediction/models/rain_prediction_model")
 
 # Lire le flux depuis Kafka
 kafka_stream = spark.readStream \
@@ -49,6 +66,7 @@ query = predictions.select("prediction") \
     .writeStream \
     .outputMode("append") \
     .format("console") \
+    .option("truncate", "false") \
     .start()
 
 query.awaitTermination()

@@ -1,5 +1,5 @@
 from kafka import KafkaProducer
-import pandas as pd
+import pandas as pd 
 import json
 
 # Charger les données prétraitées (ou les données originales si non prétraitées)
